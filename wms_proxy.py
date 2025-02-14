@@ -3,7 +3,7 @@ import requests
 from lxml import etree
 import logging
 import os
-from urllib.parse import urljoin, urlparse, parse_qs, urlencode
+from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
 
 app = Flask(__name__)
 
@@ -18,20 +18,18 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
-@app.route('/', methods=['GET'])
-def wms_proxy_root():
-    return wms_proxy()  # Reuse existing proxy logic via route chaining
-
-@app.route('/wms', methods=['GET'])
-def wms_proxy():
+@app.route('/', methods=['GET'], defaults={'path': ''})
+@app.route('/<path:path>', methods=['GET'])
+def wms_proxy(path):
     # Log parameters
     params = request.args.to_dict()
     app.logger.info(f"WMS request: {params}")
     
     # Forward request to upstream WMS preserving all headers and parameters
     headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host']}
+    upstream_url = urljoin(UPSTREAM_WMS, path)
     upstream_response = requests.get(
-        UPSTREAM_WMS,
+        upstream_url,
         params=params,
         headers=headers,
         stream=True
@@ -48,26 +46,29 @@ def wms_proxy():
                    content_type=upstream_response.headers['Content-Type'])
 
 def rewrite_xml_urls(xml_content):
-    # XML processing logic
+    # Parse configured URLs
+    upstream = urlparse(UPSTREAM_WMS)
+    proxy = urlparse(PROXY_ADDRESS)
+    
+    # XML processing setup
     ns = {'xlink': 'http://www.w3.org/1999/xlink'}
     root = etree.fromstring(xml_content)
     
-    # Find and replace URLs in common WMS elements
-    for elem in root.xpath('//OnlineResource[@xlink:href]', namespaces=ns):
-        original_url = elem.attrib['{http://www.w3.org/1999/xlink}href']
-        if UPSTREAM_WMS in original_url:
-            # Parse the original URL to preserve query parameters
-            parsed = urlparse(original_url)
-            query_params = parse_qs(parsed.query)
-            
-            # Use requested path instead of hardcoded '/wms'
-            new_base = urljoin(PROXY_ADDRESS, request.path)
-            
-            # Reconstruct URL with preserved parameters
-            new_url = new_base
-            if query_params:
-                new_url += '?' + urlencode(query_params, doseq=True)
-                
+    for elem in root.xpath('//*[@xlink:href]', namespaces=ns):
+        href = elem.attrib['{http://www.w3.org/1999/xlink}href']
+        original = urlparse(href)
+        
+        # Match upstream service's network location
+        if original.netloc == upstream.netloc:
+            # Preserve path/query/fragment and combine with proxy URL
+            new_url = urlunparse((
+                proxy.scheme,
+                proxy.netloc,
+                original.path,
+                original.params,
+                original.query,
+                original.fragment
+            ))
             elem.attrib['{http://www.w3.org/1999/xlink}href'] = new_url
     
     return etree.tostring(root, encoding='utf-8', xml_declaration=True)
