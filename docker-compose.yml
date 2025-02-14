@@ -1,0 +1,11 @@
+version: '3'
+services:
+  wms-proxy:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - UPSTREAM_WMS=${UPSTREAM_WMS}
+      - PROXY_ADDRESS=${PROXY_ADDRESS}
+      - PORT=5000
+    restart: unless-stopped
