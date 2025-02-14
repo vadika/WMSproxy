@@ -8,8 +8,8 @@ app = Flask(__name__)
 
 # Configuration from environment variables
 UPSTREAM_WMS = os.getenv('UPSTREAM_WMS', 'http://default-upstream.org/wms')
-PROXY_ADDRESS = os.getenv('PROXY_ADDRESS', 'http://localhost:5000')
-PORT = int(os.getenv('PORT', 5000))
+PROXY_ADDRESS = os.getenv('PROXY_ADDRESS', 'http://localhost:5555')
+PORT = int(os.getenv('PORT', 5555))
 
 # Configure logging
 logging.basicConfig(
