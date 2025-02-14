@@ -3,6 +3,7 @@ import requests
 from lxml import etree
 import logging
 import os
+from urllib.parse import urljoin, urlparse, parse_qs, urlencode
 
 app = Flask(__name__)
 
@@ -23,8 +24,14 @@ def wms_proxy():
     params = request.args.to_dict()
     app.logger.info(f"WMS request: {params}")
     
-    # Forward request to upstream WMS
-    upstream_response = requests.get(UPSTREAM_WMS, params=params, stream=True)
+    # Forward request to upstream WMS preserving all headers and parameters
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host']}
+    upstream_response = requests.get(
+        UPSTREAM_WMS,
+        params=params,
+        headers=headers,
+        stream=True
+    )
     
     # Process XML responses
     if 'xml' in upstream_response.headers.get('Content-Type', ''):
@@ -45,7 +52,18 @@ def rewrite_xml_urls(xml_content):
     for elem in root.xpath('//OnlineResource[@xlink:href]', namespaces=ns):
         original_url = elem.attrib['{http://www.w3.org/1999/xlink}href']
         if UPSTREAM_WMS in original_url:
-            new_url = original_url.replace(UPSTREAM_WMS, PROXY_ADDRESS + '/wms')
+            # Parse the original URL to preserve query parameters
+            parsed = urlparse(original_url)
+            query_params = parse_qs(parsed.query)
+            
+            # Create new base URL
+            new_base = PROXY_ADDRESS + '/wms'
+            
+            # Reconstruct URL with preserved parameters
+            new_url = new_base
+            if query_params:
+                new_url += '?' + urlencode(query_params, doseq=True)
+                
             elem.attrib['{http://www.w3.org/1999/xlink}href'] = new_url
     
     return etree.tostring(root, encoding='utf-8', xml_declaration=True)
