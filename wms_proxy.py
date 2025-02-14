@@ -43,12 +43,21 @@ def wms_proxy(path):
     # Build upstream URL
     upstream_url = urljoin(UPSTREAM_WMS, script_path)
     
-    upstream_response = requests.get(
-        upstream_url,
+    # Prepare the outgoing request
+    req = requests.Request(
+        method='GET',
+        url=upstream_url,
         params=final_params,
-        headers={k: v for k, v in request.headers.items() if k.lower() != 'host'},
-        stream=True
+        headers={k: v for k, v in request.headers.items() if k.lower() != 'host'}
     )
+    prepared = req.prepare()
+    
+    # Log full upstream request URL with parameters
+    app.logger.info(f"Proxying upstream request to: {prepared.url}")
+    
+    # Send the prepared request
+    with requests.Session() as s:
+        upstream_response = s.send(prepared, stream=True)
     
     # Process XML responses
     if 'xml' in upstream_response.headers.get('Content-Type', ''):
