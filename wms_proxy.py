@@ -18,6 +18,10 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(message)s'
 )
 
+@app.route('/', methods=['GET'])
+def wms_proxy_root():
+    return wms_proxy()  # Reuse existing proxy logic via route chaining
+
 @app.route('/wms', methods=['GET'])
 def wms_proxy():
     # Log parameters
@@ -56,8 +60,8 @@ def rewrite_xml_urls(xml_content):
             parsed = urlparse(original_url)
             query_params = parse_qs(parsed.query)
             
-            # Create new base URL
-            new_base = PROXY_ADDRESS + '/wms'
+            # Use requested path instead of hardcoded '/wms'
+            new_base = urljoin(PROXY_ADDRESS, request.path)
             
             # Reconstruct URL with preserved parameters
             new_url = new_base
