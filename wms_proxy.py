@@ -21,14 +21,13 @@ logging.basicConfig(
 @app.route('/', methods=['GET'], defaults={'path': ''})
 @app.route('/<path:path>', methods=['GET'])
 def wms_proxy(path):
-    # Split path into script and path parameters
-    path_parts = path.split('?')
-    script_path = path_parts[0]
-    path_params = parse_qs(path_parts[1]) if len(path_parts) > 1 else {}
+    # Pass all parameters through query string
+    script_path = path
+    path_params = {}
     
-    # Merge parameters from path and query string
+    # Use only query parameters from original request
     query_params = request.args.to_dict()
-    merged_params = {**path_params, **query_params}
+    merged_params = {**request.args}
     
     # Flatten parameter values (parse_qs returns lists)
     final_params = {k: v[0] if isinstance(v, list) else v for k, v in merged_params.items()}
