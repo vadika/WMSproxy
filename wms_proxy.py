@@ -21,17 +21,27 @@ logging.basicConfig(
 @app.route('/', methods=['GET'], defaults={'path': ''})
 @app.route('/<path:path>', methods=['GET'])
 def wms_proxy(path):
-    # Log parameters
-    params = request.args.to_dict()
-    app.logger.info(f"WMS request: {params}")
+    # Split path into script and path parameters
+    path_parts = path.split('?')
+    script_path = path_parts[0]
+    path_params = parse_qs(path_parts[1]) if len(path_parts) > 1 else {}
     
-    # Forward request to upstream WMS preserving all headers and parameters
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in ['host']}
-    upstream_url = urljoin(UPSTREAM_WMS, path)
+    # Merge parameters from path and query string
+    query_params = request.args.to_dict()
+    merged_params = {**path_params, **query_params}
+    
+    # Flatten parameter values (parse_qs returns lists)
+    final_params = {k: v[0] if isinstance(v, list) else v for k, v in merged_params.items()}
+    
+    app.logger.info(f"Proxying to {UPSTREAM_WMS} with params: {final_params}")
+    
+    # Build upstream URL
+    upstream_url = urljoin(UPSTREAM_WMS, script_path)
+    
     upstream_response = requests.get(
         upstream_url,
-        params=params,
-        headers=headers,
+        params=final_params,
+        headers={k: v for k, v in request.headers.items() if k.lower() != 'host'},
         stream=True
     )
     
