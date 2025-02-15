@@ -6,18 +6,20 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    && python -m pip install certifi \
-    && PROJ_NETWORK=ON \
-    && curl -L https://cdn.proj.org/estonia_EST97_NL2_03.tif -o /opt/venv/share/proj/estonia_EST97_NL2_03.tif \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and use virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install dependencies
+# Install dependencies first to cache them
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Create the proj data directory and download grids
+RUN mkdir -p /opt/venv/share/proj && \
+    PROJ_NETWORK=ENABLE && \
+    curl -L https://cdn.proj.org/estonia_EST97_NL2_03.tif -o /opt/venv/share/proj/estonia_EST97_NL2_03.tif
 
 FROM python:3.9-slim
 WORKDIR /app
