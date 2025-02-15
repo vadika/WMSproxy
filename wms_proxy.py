@@ -52,9 +52,27 @@ def wms_proxy(path):
     if crs_param and final_params[crs_param].upper() == 'EPSG:4326' and 'BBOX' in final_params:
         try:
             version = final_params.get('VERSION', '1.1.1')
+
+            # Create transformer with Estonia-specific transformation grid
+            target_crs_proj = (
+                "+proj=lcc "
+                "+lat_1=59.33333333333334 "
+                "+lat_2=58 "
+                "+lat_0=57.51755393055556 "
+                "+lon_0=24 "
+                "+x_0=500000 "
+                "+y_0=6375000 "
+                "+ellps=GRS80 "
+                "+towgs84=0,0,0,0,0,0,0 "
+                "+units=m "
+                "+no_defs"
+            )
+
             transformer = Transformer.from_crs(
                 crs_from="EPSG:4326",  # Source CRS
-                crs_to="EPSG:3301",    # Target CRS (Estonian system)
+                # crs_to="EPSG:3301",    # Target CRS (Estonian system)
+                crs_to=target_crs_proj,    # Target CRS
+                area_of_interest=(23.5, 57.5, 26.0, 59.0), # Estonia bounding box
                 always_xy=True
             )
 
