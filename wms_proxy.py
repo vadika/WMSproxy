@@ -70,8 +70,8 @@ def wms_proxy(path):
             )
 
             transformer = Transformer.from_crs(
-                CRS("EPSG:4326"),
-                target_crs=target_crs_proj,
+                {"proj": "longlat", "ellps": "WGS84", "datum": "WGS84"},  # WGS84 definition
+                target_crs_proj,  # Your custom LCC projection
                 always_xy=True
             )
             

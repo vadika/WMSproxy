@@ -2,10 +2,13 @@ FROM python:3.9-slim as builder
 
 WORKDIR /app
 
-# Install system dependencies
+# Install PROJ 8+ and build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
+    libsqlite3-0 \
+    && echo 'deb http://httpredir.debian.org/debian bullseye-backports main' >> /etc/apt/sources.list \
+    && apt-get update && apt-get install -y -t bullseye-backports proj libproj-dev proj-data \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and use virtual environment
