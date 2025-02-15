@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libproj-dev \
     proj-bin \
     proj-data \
-    libproj24 \
+    proj \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and use virtual environment
