@@ -5,6 +5,10 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    curl \
+    && python -m pip install certifi \
+    && PROJ_NETWORK=ON \
+    && curl -L https://cdn.proj.org/estonia_EST97_NL2_03.tif -o /opt/venv/share/proj/estonia_EST97_NL2_03.tif \
     && rm -rf /var/lib/apt/lists/*
 
 # Create and use virtual environment

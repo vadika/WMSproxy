@@ -51,27 +51,44 @@ def wms_proxy(path):
 
     if crs_param and final_params[crs_param].upper() == 'EPSG:4326' and 'BBOX' in final_params:
         try:
-            # Parse coordinates considering WMS version axis order
-            bbox_parts = list(map(float, final_params['BBOX'].split(',')))
+            version = final_params.get('VERSION', '1.1.1')
+            source_crs = "EPSG:4326"
+            target_crs = "EPSG:3301"
             
-            # Handle WMS 1.3+ axis order for EPSG:4326 (y, x)
-            if final_params.get('VERSION', '') >= '1.3.0' and final_params[crs_param].upper() == 'EPSG:4326':
-                miny, minx, maxy, maxx = bbox_parts
-            else:  # WMS <1.3.0 or non-geographic CRS
-                minx, miny, maxx, maxy = bbox_parts
-                
-            # Transform coordinates
-            transformer = Transformer.from_crs("EPSG:4326", "EPSG:3301", always_xy=True)
-            minx_t, miny_t = transformer.transform(minx, miny)
-            maxx_t, maxy_t = transformer.transform(maxx, maxy)
+            # Create transformer with Estonia-specific transformation grid
+            transformer = Transformer.from_crs(
+                source_crs, target_crs,
+                always_xy=True,
+                area_of_interest=(23.5, 57.5, 26.0, 59.0)  # Estonia bounding box
+            )
+
+            # Parse coordinates with scientific notation handling
+            bbox_parts = [float(x) for x in final_params['BBOX'].replace(' ', '').split(',')]
+            
+            # Handle WMS version-specific axis order
+            if version >= '1.3.0' and final_params[crs_param].upper() == 'EPSG:4326':
+                # WMS 1.3+ uses (Lat, Lon) order for EPSG:4326
+                min_y, min_x, max_y, max_x = bbox_parts
+            else:
+                # WMS <1.3.0 uses (Lon, Lat) order
+                min_x, min_y, max_x, max_y = bbox_parts
+
+            # Transform with high precision
+            min_x_t, min_y_t = transformer.transform(min_x, min_y)
+            max_x_t, max_y_t = transformer.transform(max_x, max_y)
+
+            # Format coordinates with adequate precision (6 decimal places = ~0.1m)
+            transformed_bbox = f"{min_x_t:.6f},{min_y_t:.6f},{max_x_t:.6f},{max_y_t:.6f}"
             
             # Update parameters
-            final_params['BBOX'] = f"{minx_t},{miny_t},{maxx_t},{maxy_t}"
-            final_params[crs_param] = 'EPSG:3301'
+            final_params['BBOX'] = transformed_bbox
+            final_params[crs_param] = target_crs
             
+            app.logger.debug(f"Transformed BBOX: {transformed_bbox}")
+
         except Exception as e:
-            app.logger.error(f"BBOX transformation failed: {str(e)}")
-            raise
+            app.logger.error(f"Coordinate transformation failed: {str(e)}")
+            return f"BBOX transformation error: {str(e)}", 400
     
     app.logger.info(f"Proxying to {UPSTREAM_WMS} with params: {final_params}")
     
