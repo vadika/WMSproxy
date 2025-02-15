@@ -33,14 +33,21 @@ def wms_proxy(path):
     
     # Properly flatten parameters while preserving multiple values
     final_params = {}
-    for k, v in merged_params.items():
-        if isinstance(v, list) and len(v) == 1:
-            final_params[k] = v[0]
-        else:
-            final_params[k] = v
+    for original_key, value in merged_params.items():
+        key = original_key.upper()
+        if isinstance(value, list): 
+            # Filter out any empty values first
+            non_empty = [v for v in value if v is not None and str(v).strip() != '']
+            if len(non_empty) == 1:
+                final_params[key] = non_empty[0]
+            elif len(non_empty) > 1:
+                final_params[key] = non_empty
+            # Else: don't add empty lists
+        elif value:  # Handle scalar values that are not in list form
+            final_params[key] = value
             
     # Find CRS/SRS parameter name case-insensitively
-    crs_param = next((k for k in final_params if k.upper() in ['SRS', 'CRS']), None)
+    crs_param = next((k for k in ['SRS', 'CRS'] if k in final_params), None)
 
     if crs_param and final_params[crs_param].upper() == 'EPSG:4326' and 'BBOX' in final_params:
         try:
