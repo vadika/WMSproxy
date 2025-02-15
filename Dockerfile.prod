@@ -2,18 +2,25 @@ FROM python:3.9-slim as builder
 
 WORKDIR /app
 
-# Install PROJ 8+ dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     curl \
-    libsqlite3-0 \
-    && echo 'deb https://deb.debian.org/debian bullseye-backports main' >> /etc/apt/sources.list \
-    && apt-get update && apt-get install -y -t bullseye-backports \
-    libproj-dev \
-    proj-bin \
-    proj-data \
-    proj \
+    cmake \
+    libsqlite3-dev \
+    libtiff-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# Install PROJ 9.2.1 from source
+RUN curl -L https://download.osgeo.org/proj/proj-9.2.1.tar.gz -o proj-9.2.1.tar.gz \
+    && tar xzf proj-9.2.1.tar.gz \
+    && cd proj-9.2.1 \
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make -j$(nproc) \
+    && make install \
+    && ldconfig
 
 # Create and use virtual environment
 RUN python -m venv /opt/venv
