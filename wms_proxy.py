@@ -4,6 +4,7 @@ from lxml import etree
 import logging
 import os
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
+from pyproj import Transformer
 
 app = Flask(__name__)
 
@@ -37,6 +38,22 @@ def wms_proxy(path):
             final_params[k] = v[0]
         else:
             final_params[k] = v
+            
+    # Transform BBOX if needed
+    transformer = Transformer.from_crs("EPSG:4326", "EPSG:3301", always_xy=True)
+    
+    if 'BBOX' in final_params and final_params.get('SRS') == 'EPSG:4326':
+        try:
+            # Parse and transform coordinates
+            minx, miny, maxx, maxy = map(float, final_params['BBOX'].split(','))
+            minx_t, miny_t = transformer.transform(minx, miny)
+            maxx_t, maxy_t = transformer.transform(maxx, maxy)
+            
+            # Update parameters
+            final_params['BBOX'] = f"{minx_t},{miny_t},{maxx_t},{maxy_t}"
+            final_params['SRS'] = 'EPSG:3301'
+        except Exception as e:
+            app.logger.error(f"BBOX transformation failed: {str(e)}")
     
     app.logger.info(f"Proxying to {UPSTREAM_WMS} with params: {final_params}")
     
