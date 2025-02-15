@@ -2,28 +2,36 @@ FROM python:3.9-slim as builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Create and use virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install dependencies
 COPY requirements.txt .
-RUN pip install --user --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 FROM python:3.9-slim
 WORKDIR /app
 
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Copy virtual environment
+COPY --from=builder /opt/venv /opt/venv
 
 # Copy application code
 COPY wms_proxy.py .
 
-# Create non-root user with explicit UID
+# Set environment variables
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Create and switch to non-root user
 RUN useradd -u 1001 -m appuser && \
-    chown -R appuser /app && \
-    chmod -R 755 /app
+    chown -R appuser:appuser /app && \
+    chown -R appuser:appuser /opt/venv
+
 USER appuser
 
 EXPOSE 5555
