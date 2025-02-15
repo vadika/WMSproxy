@@ -1,11 +1,23 @@
 version: '3'
 services:
   wms-proxy:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     ports:
-      - "5555:5555"
+      - "${PORT:-5555}:5555"
     environment:
       - UPSTREAM_WMS=${UPSTREAM_WMS}
       - PROXY_ADDRESS=${PROXY_ADDRESS}
-      - PORT=5555
+      - PORT=${PORT:-5555}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5555/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

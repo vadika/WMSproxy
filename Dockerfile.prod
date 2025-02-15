@@ -1,4 +1,4 @@
-FROM python:3.9-slim
+FROM python:3.9-slim as builder
 
 WORKDIR /app
 
@@ -9,13 +9,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements first for better caching
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --user --no-cache-dir -r requirements.txt
+
+FROM python:3.9-slim
+WORKDIR /app
+
+COPY --from=builder /root/.local /root/.local
+ENV PATH=/root/.local/bin:$PATH
 
 # Copy application code
 COPY wms_proxy.py .
 
-# Create non-root user
-RUN useradd -m appuser && chown -R appuser:appuser /app
+# Create non-root user with explicit UID
+RUN useradd -u 1001 -m appuser && \
+    chown -R appuser /app && \
+    chmod -R 755 /app
 USER appuser
 
 EXPOSE 5555
