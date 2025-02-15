@@ -39,7 +39,7 @@
     pip install -r requirements.txt
 ```
  2. Run service:
-``
+```
     UPSTREAM_WMS=https://mapantee.gokartor.se/ogc/wms.php \
     PROXY_ADDRESS=http://localhost:5555 \
     PORT=5555 \
