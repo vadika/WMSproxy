@@ -39,21 +39,32 @@ def wms_proxy(path):
         else:
             final_params[k] = v
             
-    # Transform BBOX if needed
-    transformer = Transformer.from_crs("EPSG:4326", "EPSG:3301", always_xy=True)
-    
-    if 'BBOX' in final_params and final_params.get('SRS') == 'EPSG:4326':
+    # Find CRS/SRS parameter name case-insensitively
+    crs_param = next((k for k in final_params if k.upper() in ['SRS', 'CRS']), None)
+
+    if crs_param and final_params[crs_param].upper() == 'EPSG:4326' and 'BBOX' in final_params:
         try:
-            # Parse and transform coordinates
-            minx, miny, maxx, maxy = map(float, final_params['BBOX'].split(','))
+            # Parse coordinates considering WMS version axis order
+            bbox_parts = list(map(float, final_params['BBOX'].split(',')))
+            
+            # Handle WMS 1.3+ axis order for EPSG:4326 (y, x)
+            if final_params.get('VERSION', '') >= '1.3.0' and final_params[crs_param].upper() == 'EPSG:4326':
+                miny, minx, maxy, maxx = bbox_parts
+            else:  # WMS <1.3.0 or non-geographic CRS
+                minx, miny, maxx, maxy = bbox_parts
+                
+            # Transform coordinates
+            transformer = Transformer.from_crs("EPSG:4326", "EPSG:3301", always_xy=True)
             minx_t, miny_t = transformer.transform(minx, miny)
             maxx_t, maxy_t = transformer.transform(maxx, maxy)
             
             # Update parameters
             final_params['BBOX'] = f"{minx_t},{miny_t},{maxx_t},{maxy_t}"
-            final_params['SRS'] = 'EPSG:3301'
+            final_params[crs_param] = 'EPSG:3301'
+            
         except Exception as e:
             app.logger.error(f"BBOX transformation failed: {str(e)}")
+            raise
     
     app.logger.info(f"Proxying to {UPSTREAM_WMS} with params: {final_params}")
     
