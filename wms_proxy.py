@@ -4,7 +4,7 @@ from lxml import etree
 import logging
 import os
 from urllib.parse import urljoin, urlparse, parse_qs, urlencode, urlunparse
-from pyproj import Transformer
+from pyproj import Transformer, CRS
 
 app = Flask(__name__)
 
@@ -70,10 +70,12 @@ def wms_proxy(path):
             )
 
             transformer = Transformer.from_crs(
-                source_crs="EPSG:4326",
+                CRS("EPSG:4326"),
                 target_crs=target_crs_proj,
                 always_xy=True
             )
+            
+
 
             # Parse coordinates with scientific notation handling
             bbox_parts = [float(x) for x in final_params['BBOX'].replace(' ', '').split(',')]
