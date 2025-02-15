@@ -84,7 +84,7 @@ def wms_proxy(path):
             
             # Update parameters
             final_params['BBOX'] = transformed_bbox
-            final_params[crs_param] = target_crs
+            final_params[crs_param] = "EPSG:3301"
             
             app.logger.debug(f"Transformed BBOX: {transformed_bbox}")
 
