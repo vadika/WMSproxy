@@ -55,11 +55,24 @@ def wms_proxy(path):
             source_crs = "EPSG:4326"
             target_crs = "EPSG:3301"
             
-            # Create transformer with Estonia-specific transformation grid
+            target_crs_proj = (
+                "+proj=lcc "
+                "+lat_1=59.33333333333334 "
+                "+lat_2=58 "
+                "+lat_0=57.51755393055556 "
+                "+lon_0=24 "
+                "+x_0=500000 "
+                "+y_0=6375000 "
+                "+ellps=GRS80 "
+                "+towgs84=0,0,0,0,0,0,0 "
+                "+units=m "
+                "+no_defs"
+            )
+
             transformer = Transformer.from_crs(
-                source_crs, target_crs,
-                always_xy=True,
-                area_of_interest=(23.5, 57.5, 26.0, 59.0)  # Estonia bounding box
+                source_crs="EPSG:4326",
+                target_crs=target_crs_proj,
+                always_xy=True
             )
 
             # Parse coordinates with scientific notation handling
@@ -78,7 +91,12 @@ def wms_proxy(path):
             max_x_t, max_y_t = transformer.transform(max_x, max_y)
 
             # Format coordinates with adequate precision (6 decimal places = ~0.1m)
-            transformed_bbox = f"{min_x_t:.6f},{min_y_t:.6f},{max_x_t:.6f},{max_y_t:.6f}"
+            if version >= '1.3.0':
+                # For WMS 1.3+, flip coordinates back to Y,X order
+                transformed_bbox = f"{min_y_t:.6f},{min_x_t:.6f},{max_y_t:.6f},{max_x_t:.6f}"
+            else:
+                # Keep X,Y order for older versions
+                transformed_bbox = f"{min_x_t:.6f},{min_y_t:.6f},{max_x_t:.6f},{max_y_t:.6f}"
             
             # Update parameters
             final_params['BBOX'] = transformed_bbox
