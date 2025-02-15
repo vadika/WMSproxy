@@ -25,29 +25,29 @@
     UPSTREAM_WMS=https://mapantee.gokartor.se/ogc/wms.php
     PROXY_ADDRESS=http://your-domain.com:5555
     PORT=5555
+    ```
 
-
- 2 Start container:
-
+ 2. Start container:
+```
     docker-compose up -d
+```
 
+ ###  Without Docker
 
-                                    Without Docker
-
- 1 Install requirements:
-
+ 1. Install requirements:
+```
     pip install -r requirements.txt
-
- 2 Run service:
-
+```
+ 2. Run service:
+``
     UPSTREAM_WMS=https://mapantee.gokartor.se/ogc/wms.php \
     PROXY_ADDRESS=http://localhost:5555 \
     PORT=5555 \
     python wms_proxy.py
+```
 
 
-
-                                     Configuration
+   ###                                  Configuration
 
 
   Environment Variable   Required   Default   Description
@@ -58,46 +58,46 @@
 
 
 
-                                         Usage
+   ###                                    Usage
 
 Proxy URL structure:
+```
 http://{PROXY_ADDRESS}/path/from/upstream?parameters
-
+```
 Example request:
-
-
+```
  curl "http://localhost:5555/ogc/wms.php?\
  service=WMS&\
  request=GetCapabilities"
+```
 
 
-
-                                     Verification
+   ###                                  Verification
 
 Check logs after making a request:
 
-
+```
  [INFO] Proxying upstream request to: https://upstream-service/wms.php?service=WMS...
  [INFO] 127.0.0.1 - - [timestamp] "GET /wms.php?service=WMS" 200 -
+```
 
 
+   ###                                 Troubleshooting
 
-                                    Troubleshooting
-
- 1 Missing Parameters
+ 1. Missing Parameters
    Verify:
-    • Both path-based (/wms.php?param=value) and query params (?param=value) are
+    - Both path-based (/wms.php?param=value) and query params (?param=value) are
       supported
-    • Check proxy logs for complete parameter list
- 2 XML URLs Not Rewriting
+    - Check proxy logs for complete parameter list
+ 2. XML URLs Not Rewriting
    Ensure:
-    • PROXY_ADDRESS matches your external access URL
-    • UPSTREAM_WMS exactly matches the backend service URL
-    • Response contains valid XML with xlink:href attributes
- 3 Connection Issues
+    - PROXY_ADDRESS matches your external access URL
+    - UPSTREAM_WMS exactly matches the backend service URL
+    - Response contains valid XML with xlink:href attributes
+ 3. Connection Issues
    Confirm:
-    • Upstream service is reachable from proxy
-    • Required ports are open
-    • No CORS restrictions on backend service
+    - Upstream service is reachable from proxy
+    - Required ports are open
+    - No CORS restrictions on backend service
 
 
