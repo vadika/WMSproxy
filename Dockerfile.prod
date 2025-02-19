@@ -1,4 +1,4 @@
-FROM python:3.9-slim as builder
+FROM python:3.10-slim as builder
 
 WORKDIR /app
 
@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PROJ 9.2.1 from source
-RUN curl -L https://download.osgeo.org/proj/proj-9.2.1.tar.gz -o proj-9.2.1.tar.gz \
-    && tar xzf proj-9.2.1.tar.gz \
-    && cd proj-9.2.1 \
+RUN curl -L https://download.osgeo.org/proj/proj-9.5.1.tar.gz -o proj-9.5.1.tar.gz \
+    && tar xzf proj-9.5.1.tar.gz \
+    && cd proj-9.5.1 \
     && mkdir build \
     && cd build \
     && cmake .. \
@@ -32,7 +32,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-FROM python:3.9-slim
+FROM python:3.10-slim
 WORKDIR /app
 
 # Copy virtual environment
