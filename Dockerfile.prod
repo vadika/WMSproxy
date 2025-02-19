@@ -19,9 +19,11 @@ RUN curl -L https://download.osgeo.org/proj/proj-9.5.1.tar.gz -o proj-9.5.1.tar.
     && cd proj-9.5.1 \
     && mkdir build \
     && cd build \
-    && cmake .. \
+    && cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local \
     && make -j$(nproc) \
     && make install \
+    && projsync --all \
+    && rm -rf /app/proj-9.5.1* \
     && ldconfig
 
 # Create and use virtual environment
@@ -43,6 +45,10 @@ COPY wms_proxy.py .
 
 # Set environment variables
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy PROJ data and set environment variable
+COPY --from=builder /usr/local/share/proj /usr/local/share/proj
+ENV PROJ_LIB=/usr/local/share/proj
 
 # Create and switch to non-root user
 RUN useradd -u 1001 -m appuser && \
